@@ -51,7 +51,6 @@ type Game struct {
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 var players []*Player
 var shots []*Shot
