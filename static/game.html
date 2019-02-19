@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1" />
+  <title></title>
+  <style>
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+  body {
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    border: 1px solid black;
+  }
+  </style>
+</head>
+<body>
+<canvas width="800" height="500" id="game"></canvas>
+<script>
+var gameWidth = 800
+var gameHeight = 500
+var playerWidth = 55
+var playerHeight = 50
+var canvas = document.getElementById('game');
+var player = {x:0, y:0, color: random_rgba(), faceDirection:"right", status:"ALIVE"};
+var enemies = [{x:166, y: 400, color: random_rgba(), faceDirection:"up", status:"ALIVE"}]
+var shots = []
+var ctx = canvas.getContext('2d');
+drawGame();
+    
+
+function drawGame(){
+  createPlayer(player.x, player.y, player.color)
+ 
+  enemies.forEach(enemy => {
+    if(enemy.status === "ALIVE"){
+      createPlayer(enemy.x, enemy.y, enemy.color)
+    }
+  });  
+
+  for (var i = 0; i < shots.length; i++) { 
+    var shot = shots[i];
+    if(shot.colided || shot.x > gameWidth || shot.y > gameHeight || shot.x < 0|| shot.y < 0){
+      shots.splice(i, 1);
+      break;
+    }
+  
+    var shotSpeed = 6;
+    drawShot(shot.x, shot.y, shot.color)
+    if(shot.direction === "right"){
+      shot.x += shotSpeed;
+    }else if(shot.direction === "left"){
+      shot.x -= shotSpeed;
+    }else if(shot.direction === "up"){
+      shot.y -= shotSpeed;
+    }else if(shot.direction === "down"){
+      shot.y += shotSpeed;
+    }
+
+    enemies.forEach(enemy => {
+         if(enemy.status === "ALIVE" 
+         &&(shot.x  >= enemy.x  && 
+            shot.x <= enemy.x + playerWidth) 
+        && (shot.y >=  enemy.y 
+        &&  shot.y <=  enemy.y + playerHeight)
+        ){
+          console.log("NAO ME ACERTOU", shot.x);
+          console.log("Mas a mim sim", enemy.x);
+          shot.colided = true
+          enemy.status = "DEAD"
+      }
+    });  
+
+
+    
+  }  
+ 
+}
+function random_rgba() {
+    var o = Math.round, r = Math.random, s = 255;
+    var red = o(r()*s);
+    var green = o(r()*s)
+    var blue = o(r()*s)
+
+    return {red, green, blue}
+   // return 'rgba(' + o(r()*s) + ',' + o(r()*s) + ',' + o(r()*s) + ',' + 1 + ')';
+}
+
+function createPlayer(xPosition, yPosition, color){
+    ctx.fillStyle = 'rgba(' + color.red + ',' + color.green + ',' + color.blue + ',' + 1 + ')' ;
+    ctx.fillRect (xPosition, yPosition, playerWidth, playerHeight);
+}
+
+function drawShot(x, y, color){
+  ctx.beginPath();
+  ctx.arc(x, y, 20, 0, 2 * Math.PI);
+  ctx.stroke();
+}
+
+
+function createShot(x, y, color, direction){
+  var shot = {x, y, color, direction, colided:false}
+  shots.push(shot)
+}
+
+// listen to keyboard events to move the square
+document.addEventListener('keydown', function(e) {
+  var speed = 8
+ 
+  // left arrow key
+  if (e.which === 37) {
+    player.faceDirection = "left";
+    if(player.x > 0)
+     player.x -= speed
+  }
+  // up arrow key
+  else if (e.which === 38 ) {
+    player.faceDirection = "up";
+    if(player.y > 0)
+     player.y -= speed
+  }
+  // right arrow key
+  else if (e.which === 39) {
+    player.faceDirection = "right";
+    if(player.x < canvas.width)
+     player.x += speed
+  }
+  // down arrow key
+  else if (e.which === 40) {
+    player.faceDirection = "down";
+    player.y += speed
+  }
+  else if (e.which === 32) {
+    createShot(player.x + playerWidth/ 2, player.y + playerHeight / 2, player.color, player.faceDirection)
+  }
+  
+  });
+
+function clearScreen(){
+  ctx.clearRect (0, 0, gameWidth, gameHeight);
+} 
+window.setInterval(function(){ clearScreen(); drawGame(); }, 1000 / 60);
+</script>
+</body>
+</html>
