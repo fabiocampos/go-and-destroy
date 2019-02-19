@@ -75,7 +75,7 @@ GameController.init({
 <script>
 
 	var output = document.getElementById("output");
-	var socket = new WebSocket("ws://10.10.17.214:8666/game");
+	var socket = new WebSocket("ws://go-and-destroy.herokuapp.com/game");
 
 	socket.onopen = function () {
     console.log("Inicando Jogo" );
