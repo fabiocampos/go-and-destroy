@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/fabiocampos/go-and-destroy/models"
 	"github.com/gorilla/websocket"
 )
 
@@ -15,14 +16,14 @@ const gameWidth = 310
 const gameHeight = 530
 
 type GameService struct {
-	Players     []*Player
-	Shots       []*Shot
+	Players     []*models.Player
+	Shots       []*models.Shot
 	Connections []*websocket.Conn
 }
 
 // NewService creates a new service
 func NewGameService() *GameService {
-	return &GameService{Players: make([]*Player, 0), Shots: make([]*Shot, 0)}
+	return &GameService{Players: make([]*models.Player, 0), Shots: make([]*models.Shot, 0)}
 }
 
 //Process the game state
@@ -31,6 +32,7 @@ func (s *GameService) RunGame() {
 	for isGameLooping {
 		if len(s.Players) > 0 {
 			s.MoveShot()
+			s.ClearDeadPlayers()
 			s.CreateResponse()
 		}
 		time.Sleep(5 * time.Millisecond)
@@ -39,11 +41,12 @@ func (s *GameService) RunGame() {
 
 // Write message back the game state to browser
 func (s *GameService) CreateResponse() {
-	gameResponse := GameResponse{Players: s.Players, Shots: s.Shots}
+	gameResponse := models.GameResponse{Players: s.Players, Shots: s.Shots}
 	encondedPlayers, _ := json.Marshal(gameResponse)
 
 	for i, connection := range s.Connections {
 		if err := connection.WriteMessage(websocket.TextMessage, []byte(encondedPlayers)); err != nil {
+			s.RemovePlayer(connection)
 			fmt.Printf("Disconnected: %v", err)
 			s.Connections = append(s.Connections[:i], s.Connections[i+1:]...)
 		}
@@ -51,11 +54,12 @@ func (s *GameService) CreateResponse() {
 }
 
 func (s *GameService) AddPlayer(conn *websocket.Conn) {
-	position := Position{X: random(0, gameWidth), Y: random(0, gameHeight), FaceDirection: "right"}
+	position := models.Position{X: random(0, gameWidth), Y: random(0, gameHeight), FaceDirection: "right"}
 
-	color := Color{Red: random(1, 255), Green: random(1, 254), Blue: random(1, 253)}
-	player := &Player{ID: conn.RemoteAddr().String(), Position: position, Color: color, Status: "ALIVE"}
+	color := models.Color{Red: random(1, 255), Green: random(1, 254), Blue: random(1, 253)}
+	player := &models.Player{ID: conn.RemoteAddr().String(), Position: position, Color: color, Status: "ALIVE"}
 	fmt.Println("New player: %v", player)
+
 	//Add a New Player and the respective websocket connection
 	s.Players = append(s.Players, player)
 	s.Connections = append(s.Connections, conn)
@@ -72,7 +76,7 @@ func (s *GameService) RemovePlayer(conn *websocket.Conn) {
 }
 
 func (s *GameService) ProcessAction(action string, playerID string) {
-	player := GetPlayerByID(playerID)
+	player := s.GetPlayerByID(playerID)
 	speed := 5
 	switch action {
 	case "right":
@@ -107,8 +111,8 @@ func (s *GameService) ProcessAction(action string, playerID string) {
 	}
 }
 
-func (s *GameService) createShot(player *Player) {
-	for _, shot := range shots {
+func (s *GameService) createShot(player *models.Player) {
+	for _, shot := range s.Shots {
 		if shot.PlayerID == player.ID {
 			return
 		}
@@ -116,13 +120,13 @@ func (s *GameService) createShot(player *Player) {
 	shotSpeed := 3
 	xPosition := player.Position.X + playerWidth/2
 	yPosition := player.Position.Y + playerHeight/2
-	position := Position{X: xPosition, Y: yPosition, FaceDirection: player.FaceDirection}
-	shot := &Shot{PlayerID: player.ID, Position: position, Speed: shotSpeed}
-	shots = append(shots, shot)
+	position := models.Position{X: xPosition, Y: yPosition, FaceDirection: player.FaceDirection}
+	shot := &models.Shot{PlayerID: player.ID, Position: position, Speed: shotSpeed}
+	s.Shots = append(s.Shots, shot)
 }
 
 func (s *GameService) MoveShot() {
-	for i, shot := range shots {
+	for i, shot := range s.Shots {
 		action := shot.Position.FaceDirection
 		speed := shot.Speed
 		shouldDestroy := false
@@ -159,12 +163,12 @@ func (s *GameService) MoveShot() {
 
 		shouldDestroy = shouldDestroy || s.processShotColision(shot)
 		if shouldDestroy {
-			DestroyShot(i)
+			s.DestroyShot(i)
 		}
 	}
 }
 
-func (s *GameService) processShotColision(shot *Shot) bool {
+func (s *GameService) processShotColision(shot *models.Shot) bool {
 	targetDestroyed := false
 	for _, player := range s.Players {
 		colisionMaxX := player.Position.X + playerWidth
@@ -198,7 +202,7 @@ func (s *GameService) DestroyShot(index int) {
 	s.Shots = append(s.Shots[:index], s.Shots[index+1:]...)
 }
 
-func (s *GameService) GetPlayerByID(playerID string) *Player {
+func (s *GameService) GetPlayerByID(playerID string) *models.Player {
 	for _, player := range s.Players {
 		if player.ID == playerID {
 			return player

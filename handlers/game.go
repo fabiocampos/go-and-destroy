@@ -3,12 +3,12 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"github.com/fabiocampos/go-and-destroy/models"
+
 	"github.com/fabiocampos/go-and-destroy/services"
 	"github.com/gorilla/websocket"
 )
 
-func GameHandler(service *service.GameService) http.Handler {
+func GameHandler(service *services.GameService) http.Handler {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,

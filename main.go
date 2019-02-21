@@ -20,7 +20,7 @@ func main() {
 	http.Handle("/content/", http.StripPrefix("/content/", fs))
 
 	gameService := services.NewGameService()
-	http.HandleFunc("/game", handlers.GameHandler(gameService))
+	http.Handle("/game", handlers.GameHandler(gameService))
 	go gameService.RunGame()
 
 	http.ListenAndServe(":"+port, nil)
