@@ -19,6 +19,7 @@ func GameHandler(service *services.GameService) http.Handler {
 		if err != nil {
 			fmt.Println("WebsocketError: %v", err)
 		}
+		service.AddPlayer(conn)
 		for {
 			// Read the client's message
 			_, msg, err := conn.ReadMessage()
